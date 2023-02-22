@@ -2,9 +2,14 @@ import com.codeborne.selenide.Condition;
 import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.Selenide;
 import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.BeanHandler;
 import org.apache.commons.dbutils.handlers.ScalarHandler;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -17,49 +22,34 @@ import static java.sql.DriverManager.setLoginTimeout;
 
 public class SqlTest {
 
+    LoginPage login;
     @BeforeEach
     void openChrome() {
-        open("http://localhost:9999/");
+        login = open("http://localhost:9999/", LoginPage.class);
+    }
+
+    @AfterAll
+    static void dockerDown() throws IOException {
+        String[] cmd = new String[]{"docker-compose", "down"};
+        Process process = Runtime.getRuntime().exec(cmd);
     }
 
     @Test
-    void webTest() {
-
-        var vasyaSQL = "select login from users where login='vasya';";
-        var generatedCode = "select code from auth_codes group by code order by max(created) desc limit 1;";
+    void firstTest() {
         var runner = new QueryRunner();
         Object logSQL;
         Object generatedCodeSQL;
-        String password = "qwerty123";
 
         try (
-                var conn = getConnection(
-                        "jdbc:mysql://localhost:3306/app", "app", "pass"
-                );
+                var conn = getConnection(Data.url, Data.user, Data.pass);
         ) {
-            logSQL = runner.query(conn, vasyaSQL, new ScalarHandler<>());
-            generatedCodeSQL = runner.query(conn, generatedCode, new ScalarHandler<>());
+            logSQL = runner.query(conn, Data.vasyaSQL, new ScalarHandler<>());
+            generatedCodeSQL = runner.query(conn, Data.generatedCode, new ScalarHandler<>());
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
 
-        $("[data-test-id=login] input").setValue(String.valueOf(logSQL));
-        $("[data-test-id=password] input").setValue(password);
-        $("[data-test-id=action-login]").click();
-
-        try {
-            DriverManager.getConnection("jdbc:mysql://localhost:3306/app", "app", "pass").abort(runnable -> new Thread(runnable).start());
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-
-        /* По какой-то причине информация из ДБ о сгенерированных кодах не обновляется,
-        пока я не проверну такой трюк. Выглядит криво и некрасиво, но по другому я пока не знаю,
-        как решить эту проблему.
-         */
-
-        $("[data-test-id=code] input").setValue(String.valueOf(generatedCodeSQL));
-        $("[data-test-id=action-verify]").click();
-        $("[data-test-id=dashboard").shouldBe(Condition.visible);
+        var verif = login.validLogin(String.valueOf(logSQL));
+        verif.validVerification(String.valueOf(generatedCodeSQL));
     }
 }
