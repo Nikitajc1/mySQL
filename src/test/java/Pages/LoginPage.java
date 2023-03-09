@@ -1,3 +1,5 @@
+package Pages;
+
 import com.codeborne.selenide.SelenideElement;
 
 import static com.codeborne.selenide.Selenide.$;
@@ -7,9 +9,10 @@ public class LoginPage {
     private SelenideElement passwordInput = $("[data-test-id=password] input");
     private SelenideElement button = $("[data-test-id=action-login]");
 
-    public VerificationCodePage validLogin(String login) {
-        loginInput.setValue(login);
-        passwordInput.setValue("qwerty123");
+    public VerificationCodePage login(String name, String pass) {
+
+        loginInput.setValue(name);
+        passwordInput.setValue(pass);
         button.click();
         return new VerificationCodePage();
     }

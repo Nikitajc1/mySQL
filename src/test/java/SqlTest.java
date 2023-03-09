@@ -1,7 +1,12 @@
+import Data.DataHelper;
+import Data.DatabaseProcess;
+import Pages.LoginPage;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.io.IOException;
+import java.sql.SQLException;
+
 import static com.codeborne.selenide.Selenide.open;
 
 
@@ -14,17 +19,20 @@ public class SqlTest {
     }
 
     @AfterAll
-    static void dockerDown() throws IOException {
-        DatabaseProcess.dockerDown();
+    static void cleanSQL() {
+        try {
+            DatabaseProcess.clean();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
     void firstTest() {
-        DatabaseProcess databaseProcess = new DatabaseProcess();
+        var data = new DataHelper();
 
-        databaseProcess.processing();
-        var verif = login.validLogin(String.valueOf(DatabaseProcess.logSQL));
-        databaseProcess.processing();
-        verif.validVerification(String.valueOf(DatabaseProcess.generatedCodeSQL));
+        DatabaseProcess.processing();
+        var verif = login.login(data.getLogin(), data.getPassword());
+        verif.validVerification(DatabaseProcess.processing());
     }
 }
