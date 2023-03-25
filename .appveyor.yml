@@ -1,0 +1,23 @@
+image: Ubuntu
+
+#services:
+#  - docker
+
+stack: jdk 11
+
+branches:
+  only:
+    - main
+
+build: off
+
+install:
+
+  - sudo docker-compose up -d
+  - sleep 10
+  - java -jar ./artifacts/app-deadline.jar &
+
+build_script:
+  - sleep 10
+  - sudo chmod +x gradlew
+  - ./gradlew test -Dselenide.headless=true --info
